@@ -50,16 +50,25 @@ internal static class Program
         FontCollection fonts = new();
         FontFamily family = fonts.Add(font.FullName);
         Font font_ = family.CreateFont(fontSize, FontStyle.Regular);
-
-        // Draw each character
+        
         var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).ToImmutableArray();
+        using var source = Image.Load(input.FullName).CloneAs<Rgba32>();
+        using var result = AsciifyImage(source, colour, characters);
+        
+        result.SaveAsPng(output.FullName);
+    }
+
+    private static Image<Rgba32> AsciifyImage(Image<Rgba32> rawSource, bool colour,
+        ImmutableArray<Image<L16>> characters)
+    {
+        // Get the smallest character size
         int width = characters.Select(i => i.Width).Min();
         int height = characters.Select(i => i.Height).Min();
-
-        using var rawSource = Image.Load(input.FullName).CloneAs<Rgba32>();
+        // Convert the image to greyscale
         using var rawSourceGreyscale = rawSource.Clone();
         rawSourceGreyscale.Mutate(x => x.Grayscale());
         using var source = rawSourceGreyscale.CloneAs<L16>();
+        // Create the target image, and fill it with black
         using var target = new Image<Rgba32>(source.Width, source.Height);
         target.Mutate(x => x.Clear(Color.Black));
 
@@ -98,7 +107,7 @@ internal static class Program
             target.Mutate(x => x.DrawImage(characterImage, point, 1.0f));
         }
 
-        target.SaveAsPng(output.FullName);
+        return target;
     }
 
     private static Rgba32 GetMeanColour(Image<Rgba32> image, int xOffset, int yOffset, int width, int height)
