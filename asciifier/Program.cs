@@ -71,7 +71,7 @@ internal static class Program
         rawSourceGreyscale.Mutate(x => x.Grayscale());
         using var source = rawSourceGreyscale.CloneAs<L16>();
         // Create the target image, and fill it with black
-        using var target = new Image<Rgba32>(source.Width, source.Height);
+        var target = new Image<Rgba32>(source.Width, source.Height);
         target.Mutate(x => x.Clear(Color.Black));
 
         var point = new Point(0, 0);
