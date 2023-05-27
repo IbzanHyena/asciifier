@@ -2,37 +2,44 @@
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
 
 namespace Asciifier;
 
 internal static class Program
 {
-    private static readonly char[] Characters =
-        (@"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~ "
-         + @"▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟ ")
-            .ToCharArray();
+    private static readonly ImmutableDictionary<CharacterSet, char[]> Characters =
+        ImmutableDictionary<CharacterSet, char[]>.Empty
+            .Add(CharacterSet.Ascii,
+                @"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~ "
+                    .ToCharArray())
+            .Add(CharacterSet.Blocks, @"▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟ ".ToCharArray())
+            .Add(CharacterSet.AsciiAndBlocks,
+                @"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟"
+                    .ToCharArray());
 
-    private static void Main(string[] argv)
+    /// <summary>
+    ///     Converts an image from a file to ASCII art, using the specified font.
+    /// </summary>
+    /// <param name="input">The input filepath for the image.</param>
+    /// <param name="font">The input filepath for the font.</param>
+    /// <param name="output">The output filepath for the image.</param>
+    /// <param name="characterSet">Which set of characters to use.</param>
+    /// <param name="fontSize">The font size to draw at.</param>
+    /// <param name="colour">Whether to use color.</param>
+    /// <exception cref="Exception"></exception>
+    private static void Main(FileInfo input, FileInfo font, FileInfo output,
+        CharacterSet characterSet = CharacterSet.AsciiAndBlocks, int fontSize = 12, bool colour = false)
     {
-        if (argv.Length != 2)
-        {
-            Console.WriteLine("Usage: asciifier <font> <image>");
-            throw new Exception("Invalid arguments");
-        }
-
-        string fontPath = argv[0];
         FontCollection fonts = new();
-        FontFamily family = fonts.Add(fontPath);
-        Font font = family.CreateFont(24, FontStyle.Regular);
+        FontFamily family = fonts.Add(font.FullName);
+        Font font_ = family.CreateFont(fontSize, FontStyle.Regular);
 
         // Draw each character
-        var characters = Characters.Select(c => CreateGlyphImage(font, c)).ToImmutableArray();
+        var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).ToImmutableArray();
         int width = characters.Select(i => i.Width).Min();
         int height = characters.Select(i => i.Height).Min();
-        string imagePath = argv[1];
 
-        using var rawSource = Image.Load(imagePath).CloneAs<Rgba32>();
+        using var rawSource = Image.Load(input.FullName).CloneAs<Rgba32>();
         using var rawSourceGreyscale = rawSource.Clone();
         rawSourceGreyscale.Mutate(x => x.Grayscale());
         rawSourceGreyscale.Mutate(x => x.BinaryThreshold(0.1f));
@@ -46,31 +53,34 @@ internal static class Program
         {
             // Get the character that best matches the cell
             using var characterImage = characters.MinBy(c => GetMeanDifference(c, source, i, j)).CloneAs<Rgba32>();
-            // Get the mean colour
-            Rgba32 meanColour = GetMeanColour(rawSource, i, j, characterImage.Width, characterImage.Height);
-            var options = new DrawingOptions
+
+            if (colour)
             {
-                ShapeOptions = new ShapeOptions
+                // Get the mean colour, and fill the character with it
+                Rgba32 meanColour = GetMeanColour(rawSource, i, j, characterImage.Width, characterImage.Height);
+                var options = new DrawingOptions
                 {
-                    IntersectionRule = IntersectionRule.Nonzero
-                },
-                GraphicsOptions = new GraphicsOptions
-                {
-                    Antialias = false,
-                    AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver,
-                    ColorBlendingMode = PixelColorBlendingMode.Multiply
-                }
-            };
-            
+                    ShapeOptions = new ShapeOptions
+                    {
+                        IntersectionRule = IntersectionRule.Nonzero
+                    },
+                    GraphicsOptions = new GraphicsOptions
+                    {
+                        Antialias = false,
+                        AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver,
+                        ColorBlendingMode = PixelColorBlendingMode.Multiply
+                    }
+                };
+                characterImage.Mutate(x => x.Fill(options, meanColour));
+            }
+
             // Draw the character
             point.X = i;
             point.Y = j;
-            characterImage.Mutate(x => x.Fill(options, meanColour));
             target.Mutate(x => x.DrawImage(characterImage, point, 1.0f));
-
         }
 
-        target.SaveAsPng("out.png");
+        target.SaveAsPng(output.FullName);
     }
 
     private static Rgba32 GetMeanColour(Image<Rgba32> image, int xOffset, int yOffset, int width, int height)
@@ -79,10 +89,10 @@ internal static class Program
         var count = 0;
         for (var i = 0; i < width; i++)
         {
-            if (i + xOffset >= image.Width) { break; }
+            if (i + xOffset >= image.Width) break;
             for (var j = 0; j < height; j++)
             {
-                if (j + yOffset >= image.Height) { break; }
+                if (j + yOffset >= image.Height) break;
                 Rgba32 pixel = image[i + xOffset, j + yOffset];
                 totalR += pixel.R;
                 totalG += pixel.G;
@@ -127,5 +137,12 @@ internal static class Program
         var image = new Image<L16>((int)Math.Ceiling(rect.Width), (int)Math.Ceiling(rect.Height));
         image.Mutate(x => x.DrawText(s, font, Color.White, new PointF(0, 0)));
         return image;
+    }
+
+    private enum CharacterSet
+    {
+        Ascii,
+        Blocks,
+        AsciiAndBlocks
     }
 }

@@ -11,6 +11,8 @@
         <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta19"/>
         <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1"/>
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15"/>
+        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1"/>
+        <PackageReference Include="System.CommandLine.DragonFruit" Version="0.4.0-alpha.22272.1"/>
     </ItemGroup>
 
 </Project>
