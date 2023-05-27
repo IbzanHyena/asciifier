@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 using System.Collections.Immutable;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing;
@@ -59,8 +60,23 @@ internal static class Program
         rawSourceGreyscale.Mutate(x => x.BinaryThreshold(0.1f));
         using var source = rawSourceGreyscale.CloneAs<L16>();
         using var target = new Image<Rgba32>(source.Width, source.Height);
-        var point = new Point(0, 0);
         target.Mutate(x => x.Clear(Color.Black));
+
+        var point = new Point(0, 0);
+        var drawingOptions = new DrawingOptions
+        {
+            ShapeOptions = new ShapeOptions
+            {
+                IntersectionRule = IntersectionRule.Nonzero
+            },
+            GraphicsOptions = new GraphicsOptions
+            {
+                Antialias = false,
+                AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver,
+                ColorBlendingMode = PixelColorBlendingMode.Multiply
+            }
+        };
+
         // Get the cells of the image
         for (var i = 0; i < source.Width; i += width)
         for (var j = 0; j < source.Height; j += height)
@@ -72,20 +88,7 @@ internal static class Program
             {
                 // Get the mean colour, and fill the character with it
                 Rgba32 meanColour = GetMeanColour(rawSource, i, j, characterImage.Width, characterImage.Height);
-                var options = new DrawingOptions
-                {
-                    ShapeOptions = new ShapeOptions
-                    {
-                        IntersectionRule = IntersectionRule.Nonzero
-                    },
-                    GraphicsOptions = new GraphicsOptions
-                    {
-                        Antialias = false,
-                        AlphaCompositionMode = PixelAlphaCompositionMode.SrcOver,
-                        ColorBlendingMode = PixelColorBlendingMode.Multiply
-                    }
-                };
-                characterImage.Mutate(x => x.Fill(options, meanColour));
+                characterImage.Mutate(x => x.Fill(drawingOptions, meanColour));
             }
 
             // Draw the character
