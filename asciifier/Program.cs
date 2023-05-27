@@ -52,11 +52,18 @@ internal static class Program
         FontFamily family = fonts.Add(font.FullName);
         // ReSharper disable once InconsistentNaming
         Font font_ = family.CreateFont(fontSize, FontStyle.Regular);
-        
-        var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).ToImmutableArray();
+
+        IEnumerable<Image<L16>> InvertGlyph(Image<L16> image)
+        {
+            var invertedImage = image.Clone();
+            invertedImage.Mutate(x => x.Invert());
+            return new[] { image, invertedImage };
+        }
+
+        var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).SelectMany(InvertGlyph).ToImmutableArray();
         using var source = Image.Load(input.FullName).CloneAs<Rgba32>();
         using var result = AsciifyImage(source, colour, characters);
-        
+
         result.SaveAsPng(output.FullName);
     }
 
