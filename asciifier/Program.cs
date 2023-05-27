@@ -31,7 +31,9 @@ internal static class Program
             .Add(CharacterSet.Blocks, @"▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟ ".ToCharArray())
             .Add(CharacterSet.AsciiAndBlocks,
                 @"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!""#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ▀▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓▔▕▖▗▘▙▚▛▜▝▞▟"
-                    .ToCharArray());
+                    .ToCharArray())
+            .Add(CharacterSet.Symbols,
+                @"!@#$%^&*()-=_+[]{}\|;:'"",<.>/? ".ToCharArray());
 
     /// <summary>
     ///     Converts an image from a file to ASCII art, using the specified font.
@@ -159,6 +161,7 @@ internal static class Program
     {
         Ascii,
         Blocks,
-        AsciiAndBlocks
+        AsciiAndBlocks,
+        Symbols
     }
 }
