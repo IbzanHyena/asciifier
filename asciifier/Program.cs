@@ -44,11 +44,13 @@ internal static class Program
     /// <param name="characterSet">Which set of characters to use.</param>
     /// <param name="fontSize">The font size to draw at.</param>
     /// <param name="colour">Whether to use color.</param>
+    // ReSharper disable once UnusedMember.Local
     private static void Main(FileInfo input, FileInfo font, FileInfo output,
         CharacterSet characterSet = CharacterSet.AsciiAndBlocks, int fontSize = 12, bool colour = false)
     {
         FontCollection fonts = new();
         FontFamily family = fonts.Add(font.FullName);
+        // ReSharper disable once InconsistentNaming
         Font font_ = family.CreateFont(fontSize, FontStyle.Regular);
         
         var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).ToImmutableArray();
@@ -92,7 +94,10 @@ internal static class Program
         for (var j = 0; j < source.Height; j += height)
         {
             // Get the character that best matches the cell
-            using var characterImage = characters.MinBy(c => GetMeanDifference(c, source, i, j)).CloneAs<Rgba32>();
+            int i1 = i;
+            int j1 = j;
+            // ReSharper disable once AccessToDisposedClosure
+            using var characterImage = characters.MinBy(c => GetMeanDifference(c, source, i1, j1))!.CloneAs<Rgba32>();
 
             if (colour)
             {
@@ -104,6 +109,7 @@ internal static class Program
             // Draw the character
             point.X = i;
             point.Y = j;
+            // ReSharper disable once AccessToDisposedClosure
             target.Mutate(x => x.DrawImage(characterImage, point, 1.0f));
         }
 
