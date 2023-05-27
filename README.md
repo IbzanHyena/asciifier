@@ -2,6 +2,10 @@
 
 Converts images to ASCII art.
 
+## Requirements
+
+- [.NET 7.0](https://dotnet.microsoft.com/download/dotnet/7.0)
+
 ## Usage
 
 Clone the repo and use `dotnet run` to run the program.
