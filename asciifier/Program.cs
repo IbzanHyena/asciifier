@@ -41,7 +41,6 @@ internal static class Program
     /// <param name="characterSet">Which set of characters to use.</param>
     /// <param name="fontSize">The font size to draw at.</param>
     /// <param name="colour">Whether to use color.</param>
-    /// <exception cref="Exception"></exception>
     private static void Main(FileInfo input, FileInfo font, FileInfo output,
         CharacterSet characterSet = CharacterSet.AsciiAndBlocks, int fontSize = 12, bool colour = false)
     {
