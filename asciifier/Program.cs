@@ -57,7 +57,6 @@ internal static class Program
         using var rawSource = Image.Load(input.FullName).CloneAs<Rgba32>();
         using var rawSourceGreyscale = rawSource.Clone();
         rawSourceGreyscale.Mutate(x => x.Grayscale());
-        rawSourceGreyscale.Mutate(x => x.BinaryThreshold(0.1f));
         using var source = rawSourceGreyscale.CloneAs<L16>();
         using var target = new Image<Rgba32>(source.Width, source.Height);
         target.Mutate(x => x.Clear(Color.Black));
