@@ -81,7 +81,6 @@ internal static class Program
         var target = new Image<Rgba32>(source.Width, source.Height);
         target.Mutate(x => x.Clear(Color.Black));
 
-        var point = new Point(0, 0);
         var drawingOptions = new DrawingOptions
         {
             ShapeOptions = new ShapeOptions
@@ -97,28 +96,31 @@ internal static class Program
         };
 
         // Get the cells of the image
-        for (var i = 0; i < source.Width; i += width)
-        for (var j = 0; j < source.Height; j += height)
+
+        Parallel.For(0, source.Width / width, xIndex =>
         {
-            // Get the character that best matches the cell
-            int i1 = i;
-            int j1 = j;
             // ReSharper disable once AccessToDisposedClosure
-            using var characterImage = characters.MinBy(c => GetMeanDifference(c, source, i1, j1))!.CloneAs<Rgba32>();
-
-            if (colour)
+            Parallel.For(0, source.Height / height, yIndex =>
             {
-                // Get the mean colour, and fill the character with it
-                Rgba32 meanColour = GetMeanColour(rawSource, i, j, characterImage.Width, characterImage.Height);
-                characterImage.Mutate(x => x.Fill(drawingOptions, meanColour));
-            }
+                int i = xIndex * width;
+                int j = yIndex * height;
+                // Get the character that best matches the cell
+                // ReSharper disable once AccessToDisposedClosure
+                using var characterImage = characters.AsParallel().MinBy(c => GetMeanDifference(c, source, i, j))!.CloneAs<Rgba32>();
 
-            // Draw the character
-            point.X = i;
-            point.Y = j;
-            // ReSharper disable once AccessToDisposedClosure
-            target.Mutate(x => x.DrawImage(characterImage, point, 1.0f));
-        }
+                if (colour)
+                {
+                    // Get the mean colour, and fill the character with it
+                    Rgba32 meanColour = GetMeanColour(rawSource, i, j, characterImage.Width, characterImage.Height);
+                    characterImage.Mutate(x => x.Fill(drawingOptions, meanColour));
+                }
+
+                // Draw the character
+                var point = new Point(i, j);
+                // ReSharper disable once AccessToDisposedClosure
+                target.Mutate(x => x.DrawImage(characterImage, point, 1.0f));
+            });
+        });
 
         return target;
     }
