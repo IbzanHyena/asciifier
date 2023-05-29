@@ -50,21 +50,38 @@ internal static class Program
     {
         FontCollection fonts = new();
         FontFamily family = fonts.Add(font.FullName);
-        // ReSharper disable once InconsistentNaming
-        Font font_ = family.CreateFont(fontSize, FontStyle.Regular);
 
-        IEnumerable<Image<L16>> InvertGlyph(Image<L16> image)
-        {
-            var invertedImage = image.Clone();
-            invertedImage.Mutate(x => x.Invert());
-            return new[] { image, invertedImage };
-        }
-
-        var characters = Characters[characterSet].Select(c => CreateGlyphImage(font_, c)).SelectMany(InvertGlyph).ToImmutableArray();
         using var source = Image.Load(input.FullName).CloneAs<Rgba32>();
-        using var result = AsciifyImage(source, colour, characters);
+        
+        using var test = new Image<Rgba32>(source.Width, source.Height);
 
-        result.SaveAsPng(output.FullName);
+
+        for (var fs = 72; fs >= 8; fs -= 1)
+        {
+            Console.WriteLine($"[{DateTimeOffset.Now}]: Font size: {fs}");
+            // ReSharper disable once InconsistentNaming
+            Font font_ = family.CreateFont(fs, FontStyle.Regular);
+
+            IEnumerable<Image<L16>> InvertGlyph(Image<L16> image)
+            {
+                var invertedImage = image.Clone();
+                invertedImage.Mutate(x => x.Invert());
+                return new[] { image, invertedImage };
+            }
+
+            var characters = Characters[characterSet].AsParallel().Select(c => CreateGlyphImage(font_, c)).SelectMany(InvertGlyph).ToImmutableArray();
+            using var result = AsciifyImage(source, colour, characters);
+            test.Frames.AddFrame(result.Frames[0]);
+        }
+        
+        test.Frames.RemoveFrame(0);
+        // Set the frame delay to 40ms = 4cs
+        foreach (var fr in test.Frames)
+        {
+            fr.Metadata.GetGifMetadata().FrameDelay = 4;
+        }
+        test.Metadata.GetGifMetadata().RepeatCount = 0;
+        test.SaveAsGif(output.FullName);
     }
 
     private static Image<Rgba32> AsciifyImage(Image<Rgba32> rawSource, bool colour,
